@@ -3,7 +3,7 @@ This module contains a simple test for the development process to ensure that
 the replicated results of Carneiro et al (2011) remain unaltered after
 code optimization.
 """
-# import pytest
+
 import pandas as pd
 
 from numpy.testing import assert_equal
@@ -16,7 +16,7 @@ sys.path.append("..")
 def test_replication():
     """
     This function asserts equality between the test mte_u and the replicated
-    mte_u, which is the first derivative of a local polynomial estimator
+    mte_u, the first derivative of a local polynomial estimator
     of degree 2.
     """
     quantiles, test_mte_u, test_mte_x, test_mte = semipar_fit(
