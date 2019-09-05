@@ -3,7 +3,6 @@ This module contains a simple test for the development process to ensure that
 the replicated results of Carneiro et al (2011) remain unaltered after
 code optimization.
 """
-
 import pandas as pd
 
 from numpy.testing import assert_equal
@@ -32,4 +31,4 @@ def test_replication():
 
 if __name__ == "__main__":
     test_replication()
-    print("Everything passed ")
+    print("Everything passed")
