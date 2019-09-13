@@ -4,6 +4,7 @@ dependencies:
   - numpy
   - pandas
   - statsmodels
+  - scipy
   - numba
   - matplotlib
   - jupyterlab
@@ -11,3 +12,4 @@ dependencies:
   - pip:
     - grmpy
     - scikit-misc
+    - sklearn
