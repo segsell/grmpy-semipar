@@ -9,6 +9,7 @@ from numpy.testing import assert_equal
 from semipar.estimation.estimate import semipar_fit
 
 import sys
+
 sys.path.append("..")
 
 

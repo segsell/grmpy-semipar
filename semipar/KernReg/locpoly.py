@@ -104,9 +104,7 @@ def locpoly(
     # The input arrays x and y, i.e. predictor and response variable,
     # respectively, must be sorted by x.
     if is_sorted(x) is False:
-        raise Warning(
-            "Input arrays x and y must be sorted by x "
-            "before estimation!")
+        raise Warning("Input arrays x and y must be sorted by x " "before estimation!")
 
     if a is None:
         a = min(x)

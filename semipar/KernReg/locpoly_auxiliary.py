@@ -72,8 +72,8 @@ def discretize_bandwidths(bw, M, bwdisc, delta):
 
     else:
         raise Warning(
-            "'bandwidth' must be a scalar or np.ndarray "
-            "of length 'gridsize'")
+            "'bandwidth' must be a scalar or np.ndarray " "of length 'gridsize'"
+        )
 
     if min(L) == 0:
         raise Warning(
@@ -166,8 +166,7 @@ def combine_bincounts_kernel_weights(
                             for ii in range(1, ppp):
                                 fac = fac * delta * (g - j)
 
-                                ss[j, ii] += xcnts[g] * \
-                                    fkap[g - j + midpt - 1] * fac
+                                ss[j, ii] += xcnts[g] * fkap[g - j + midpt - 1] * fac
 
                                 if ii < pp:
                                     tt[j, ii] += (
@@ -189,11 +188,9 @@ def combine_bincounts_kernel_weights(
 
                                 fac = 1
 
-                                ss[j, 0] += xcnts[g] * \
-                                    fkap[g - j + midpt[i] - 1]
+                                ss[j, 0] += xcnts[g] * fkap[g - j + midpt[i] - 1]
 
-                                tt[j, 0] += ycnts[g] * \
-                                    fkap[g - j + midpt[i] - 1]
+                                tt[j, 0] += ycnts[g] * fkap[g - j + midpt[i] - 1]
 
                                 for ii in range(1, ppp):
                                     fac = fac * delta * (g - j)

@@ -91,8 +91,9 @@ def bin_counts_and_averages(x, y, M=401, a=None, delta=None, truncate=True):
                         np.where(li == g)[0][j]
                     ]
 
-                    ycounts[g] += (rem[np.where(li == g)[0][j]]
-                                   * y[np.where(li == g)[0][j]])
+                    ycounts[g] += (
+                        rem[np.where(li == g)[0][j]] * y[np.where(li == g)[0][j]]
+                    )
 
     # By default, end observations are truncated.
     for i in range(n):
