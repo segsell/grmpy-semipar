@@ -3,3 +3,4 @@ __pxcache__/
 .idea/
 .ipynb_checkpoints/
 *.html
+.DS_Store
