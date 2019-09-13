@@ -4,6 +4,7 @@ dependencies:
   - numpy
   - pandas
   - statsmodels
+  - numba
   - matplotlib
   - jupyterlab
   - pip
