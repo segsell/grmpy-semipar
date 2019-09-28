@@ -71,9 +71,7 @@ def discretize_bandwidths(bw, M, bwdisc, delta):
         )
 
     else:
-        raise Warning(
-            "'bandwidth' must be a scalar or np.ndarray of length 'gridsize'"
-        )
+        raise Warning("'bandwidth' must be a scalar or np.ndarray of length 'gridsize'")
 
     if min(L) == 0:
         raise Warning(
@@ -141,8 +139,69 @@ def combine_bincounts_kernel_weights(
 ):
     """
     This function combines the bin counts (xcnts) and bin averages (ycnts) with
-    the kernel weights via a series of direct convolutions. As a result, binned
+    kernel weights via a series of direct convolutions. As a result, binned
     approximations to X'W X and X'W y, denoted by ss and tt, are computed.
+
+    Recall that the local polynomial curve estimator beta_ and its derivatives are
+    minimizers to a locally weighted least-squares problem. At each grid
+    point g = 1,..., M in the grid, beta_ is computed as the solution to the
+    linear matrix equation:
+
+    X'W X * beta_ = X'W y,
+
+    where W are kernel weights approximated by the Gaussian density function.
+    X'W X and X'W y are approximated by ss and tt,
+    which are the result of a direct convolution of bin counts (xcnts) and kernel
+    weights, and bin averages (ycnts) and kernel weights, respectively.
+
+    The terms "kernel" and "kernel function" are used interchangeably
+    throughout.
+
+    For more information see the documentation of the main function locpoly
+    under KernReg.locpoly.
+
+    Parameters
+    ----------
+    xcnts: np.ndarry
+        1-D array of binned x-values ("bin counts") of length M.
+    ycnts: np.ndarry
+        1-D array of binned y-values ("bin averages") of length M.
+    Q: int
+        Same as 'bwdisc'. Number of logarithmically equally-spaced bandwidths
+        on which local bandwidths are discretized, to speed up computation.
+        For the case where 'bandwidth' is a scalar, Q equals 1.
+    M: int
+        Gridsize, i.e. number of equally-spaced grid points.
+    pp: int
+        Number of columns of output array tt, i.e the binned approximation to X'W y.
+        Degree + 1 (for degree = 2, pp equals 3).
+    ppp: int
+        Number of columns of output array ss, i.e. the binned approximation to X'W X.
+        2 * degree + 1 (for degree = 2, ppp equals 5).
+    dimfkap: int
+        Length of 1-D array fkap.
+    fkap: np.ndarry
+        1-D array of length dimfkap containing
+        approximated weights for the Gaussian kernel
+        (W in the notation above).
+    L: np.ndarry
+        1-D array determining the number of times the kernel function
+        has to be evaluated.
+        Note that L < N, where N is the total number of observations.
+    midpt: int or np.ndarray of length Q.
+        Midpoint of fkap.
+    indic: np.ndarry
+        1-D array of length M containing ones.
+        These are used as index values.
+    delta: float
+        Bin width.
+
+    Returns
+    -------
+    ss: np.ndarry
+        Dimensions (M, ppp). Binned approximation to X'W X.
+    tt: np.ndarry
+        Dimensions (M, pp). Binned approximation to X'W y.
     """
     ss = np.zeros((M, ppp))
     tt = np.zeros((M, pp))
@@ -239,7 +298,7 @@ def get_curve_estimator(ss, tt, pp, drv, M):
 
 @numba.jit
 def is_sorted(a):
-    """This function checks if input array is sorted ascendingly."""
+    """This function checks if the input array is sorted ascendingly."""
     for i in range(a.size - 1):
         if a[i + 1] < a[i]:
             return False

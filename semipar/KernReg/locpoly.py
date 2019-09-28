@@ -42,7 +42,7 @@ def locpoly(
 
     X'W X * beta_ = X'W y,
 
-    where W are kernel weights. X'W X and X'W y are aproximated by ss and tt,
+    where W are kernel weights. X'W X and X'W y are approximated by ss and tt,
     which are the result of a direct convolution of bin counts and kernel
     weights, or bin averages and kernel weights, respectively.
 
