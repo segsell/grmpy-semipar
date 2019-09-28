@@ -72,7 +72,7 @@ def discretize_bandwidths(bw, M, bwdisc, delta):
 
     else:
         raise Warning(
-            "'bandwidth' must be a scalar or np.ndarray " "of length 'gridsize'"
+            "'bandwidth' must be a scalar or np.ndarray of length 'gridsize'"
         )
 
     if min(L) == 0:
@@ -101,7 +101,7 @@ def get_kernel_weights(L, Q, delta, hdisc):
             # Note that the mid point (fkap[mid - 1]) receives a weight of 1.
             fkap[mid - 1 + j] = math.exp(-(delta * j / hdisc) ** 2 / 2)
 
-            # Because of the kernel's symmetry, weights in euqidistance
+            # Because of the kernel's symmetry, weights in equidistance
             # below and above the midpoint are identical.
             fkap[mid - 1 - j] = fkap[mid - 1 + j]
 
@@ -140,9 +140,9 @@ def combine_bincounts_kernel_weights(
     xcnts, ycnts, Q, M, pp, ppp, dimfkap, fkap, L, midpt, indic, delta
 ):
     """
-    This function combines the bin counts/averages and kernel weights via a
-    series of direct convolutions. As a result, binned approximations to
-    X'W X and X'W y, denoted by ss and tt, respectively, are computed.
+    This function combines the bin counts (xcnts) and bin averages (ycnts) with
+    the kernel weights via a series of direct convolutions. As a result, binned
+    approximations to X'W X and X'W y, denoted by ss and tt, are computed.
     """
     ss = np.zeros((M, ppp))
     tt = np.zeros((M, pp))

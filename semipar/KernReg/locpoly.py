@@ -101,10 +101,10 @@ def locpoly(
     curvest: np.ndarry
         Array of M local estimators.
     """
-    # The input arrays x and y, i.e. predictor and response variable,
-    # respectively, must be sorted by x.
+    # The input arrays x (predictor) and y (response variable)
+    # must be sorted by x.
     if is_sorted(x) is False:
-        raise Warning("Input arrays x and y must be sorted by x " "before estimation!")
+        raise Warning("Input arrays x and y must be sorted by x before estimation!")
 
     if a is None:
         a = min(x)
@@ -123,7 +123,7 @@ def locpoly(
     # tau is chosen so that the interval [-tau, tau] is the
     # "effective support" of the Gaussian kernel,
     # i.e. K is effectively zero outside of [-tau, tau].
-    # According to Wand (1994) and Wand & Jones (1995) tau = 4 is a
+    # According to Wand (1994) and Wand & Jones (1995), tau = 4 is a
     # reasonable choice for the Gaussian kernel.
     tau = 4
 
@@ -150,7 +150,7 @@ def locpoly(
 
     # 2. Obtain kernel weights
     # Note that only L < N kernel evaluations are required to obtain the
-    # kernel weights, fkap, regardless of the number of observations N.
+    # kernel weights (fkap) regardless of the number of observations N.
     fkap, dimfkap, midpt = get_kernel_weights(L, Q, delta, hdisc)
 
     # 3. Combine bin counts and kernel weights
