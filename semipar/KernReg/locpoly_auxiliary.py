@@ -26,21 +26,20 @@ def discretize_bandwidths(bw, M, bwdisc, delta):
     hdisc: np.ndarry
         Array of discretized local bandwidths.
     L: np.ndarry
-        Array determining the number of times the kernel function
+        Array of length 'bwdisc' determining the number of times the kernel function
         has to be evaluated.
         Note that L < N, where N is the total number of observations.
     indic: np.ndarry
         Array of length M containing index values.
     """
     indic = np.ones(M)
-    Q = bwdisc
 
     # tau is chosen so that the interval [-tau, tau] is the
     # "effective support" of the Gaussian kernel,
     # i.e. K is effectively zero outside of [-tau, tau].
     # Opposed to kernel functions with bounded support,
     # the Gaussian kernel, which has infinite support, is merely
-    # "effectctively zero" beyond tau,
+    # "effectively zero" beyond tau.
     # According to Wand (1994) and Wand & Jones (1995) tau = 4 is a
     # reasonable choice for the Gaussian kernel.
     tau = 4
@@ -55,10 +54,10 @@ def discretize_bandwidths(bw, M, bwdisc, delta):
         L = np.floor(tau * hdisc / delta).astype(int)
 
         # Determine index of closest entry of hdisc
-        # to each member of "bandwidth
-        if Q > 1:
+        # to each member of 'bandwidth'
+        if bwdisc > 1:
             log_hdisc = np.log(hdisc)
-            gap = (log_hdisc[Q - 1] - log_hdisc[0]) / (Q - 1)
+            gap = (log_hdisc[bwdisc - 1] - log_hdisc[0]) / (bwdisc - 1)
             if gap == 0:
                 indic = np.ones(M)
             else:
@@ -82,11 +81,11 @@ def discretize_bandwidths(bw, M, bwdisc, delta):
     return hdisc, L, indic
 
 
-def get_kernel_weights(L, Q, delta, hdisc):
+def get_kernel_weights(L, bwdisc, delta, hdisc):
     """This function computes approximated weights for the Gaussian kernel."""
     # If bandwidth is a scalar, midpt is an integer
-    if Q == 1:
-        dimfkap = 2 * L + Q
+    if bwdisc == 1:
+        dimfkap = 2 * L + 1
         fkap = np.zeros(dimfkap)
 
         # Determine midpoint of fkap
@@ -104,15 +103,15 @@ def get_kernel_weights(L, Q, delta, hdisc):
             fkap[mid - 1 - j] = fkap[mid - 1 + j]
 
     # If M discretized local bandwidths are given, midpt is an np.ndarray of
-    # length Q.
+    # length bwdisc.
     else:
-        dimfkap = 2 * sum(L) + Q
+        dimfkap = 2 * sum(L) + bwdisc
         fkap = np.zeros(dimfkap)
         mid = L[0] + 1
 
-        midpt = np.zeros(Q)
+        midpt = np.zeros(bwdisc)
 
-        for i in range(Q - 1):
+        for i in range(bwdisc - 1):
             midpt[i] = mid
 
             # Give point in the middle a weight of 1
@@ -124,18 +123,18 @@ def get_kernel_weights(L, Q, delta, hdisc):
 
             mid = mid + L[i] + L[i + 1] + 1
 
-        midpt[Q - 1] = mid
+        midpt[bwdisc - 1] = mid
         fkap[mid] = 1
 
-        for j in range(L[Q - 1] + 1):
-            fkap[mid + j - 1] = np.exp(-(delta * j / hdisc[Q - 1]) ** 2 / 2)
+        for j in range(L[bwdisc - 1] + 1):
+            fkap[mid + j - 1] = np.exp(-(delta * j / hdisc[bwdisc - 1]) ** 2 / 2)
             fkap[mid - j - 1] = fkap[mid + j - 1]
 
     return fkap, dimfkap, midpt
 
 
 def combine_bincounts_kernel_weights(
-    xcnts, ycnts, Q, M, pp, ppp, dimfkap, fkap, L, midpt, indic, delta
+    xcnts, ycnts, bwdisc, M, pp, ppp, dimfkap, fkap, L, midpt, indic, delta
 ):
     """
     This function combines the bin counts (xcnts) and bin averages (ycnts) with
@@ -166,10 +165,10 @@ def combine_bincounts_kernel_weights(
         1-D array of binned x-values ("bin counts") of length M.
     ycnts: np.ndarry
         1-D array of binned y-values ("bin averages") of length M.
-    Q: int
-        Same as 'bwdisc'. Number of logarithmically equally-spaced bandwidths
+    bwdisc: int
+        Number of logarithmically equally-spaced bandwidths
         on which local bandwidths are discretized, to speed up computation.
-        For the case where 'bandwidth' is a scalar, Q equals 1.
+        For the case where 'bandwidth' is a scalar, bwdisc equals 1.
     M: int
         Gridsize, i.e. number of equally-spaced grid points.
     pp: int
@@ -184,11 +183,13 @@ def combine_bincounts_kernel_weights(
         1-D array of length dimfkap containing
         approximated weights for the Gaussian kernel
         (W in the notation above).
-    L: np.ndarry
-        1-D array determining the number of times the kernel function
+    L: int or np.ndarry of length bwdisc
+        Parameter defining the number of times the kernel function
         has to be evaluated.
+        For the case where 'bandwidth' is a scalar, L is an integer.
         Note that L < N, where N is the total number of observations.
-    midpt: int or np.ndarray of length Q.
+    midpt: int or np.ndarray of length bwdisc.
+        For the case where 'bandwidth' is a scalar, midpt is an integer.
         Midpoint of fkap.
     indic: np.ndarry
         1-D array of length M containing ones.
@@ -208,7 +209,7 @@ def combine_bincounts_kernel_weights(
 
     # Distinguish two cases:
     # a) Bandwidth is a scalar
-    if Q == 1:
+    if bwdisc == 1:
         for g in range(M):
             if xcnts[g] != 0:
                 for j in range(max(0, g - L - 1), min(M, g + L)):
@@ -237,8 +238,8 @@ def combine_bincounts_kernel_weights(
         for g in range(M):
             if xcnts[g] != 0:
 
-                # Repeat this process Q times.
-                for i in range(Q):
+                # Repeat this process bwdisc times.
+                for i in range(bwdisc):
                     for j in range(max(0, g - L[i] - 1), min(M, g + L[i])):
 
                         # Only consider values within the range of fkap.
