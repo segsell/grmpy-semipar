@@ -134,10 +134,10 @@ def get_kernel_weights(L, bwdisc, delta, hdisc):
 
 
 def combine_bincounts_kernel_weights(
-    xcnts, ycnts, bwdisc, M, pp, ppp, dimfkap, fkap, L, midpt, indic, delta
+    xcounts, ycounts, bwdisc, M, pp, ppp, dimfkap, fkap, L, midpt, indic, delta
 ):
     """
-    This function combines the bin counts (xcnts) and bin averages (ycnts) with
+    This function combines the bin counts (xcounts) and bin averages (ycounts) with
     kernel weights via a series of direct convolutions. As a result, binned
     approximations to X'W X and X'W y, denoted by ss and tt, are computed.
 
@@ -150,8 +150,8 @@ def combine_bincounts_kernel_weights(
 
     where W are kernel weights approximated by the Gaussian density function.
     X'W X and X'W y are approximated by ss and tt,
-    which are the result of a direct convolution of bin counts (xcnts) and kernel
-    weights, and bin averages (ycnts) and kernel weights, respectively.
+    which are the result of a direct convolution of bin counts (xcounts) and kernel
+    weights, and bin averages (ycounts) and kernel weights, respectively.
 
     The terms "kernel" and "kernel function" are used interchangeably
     throughout.
@@ -161,9 +161,9 @@ def combine_bincounts_kernel_weights(
 
     Parameters
     ----------
-    xcnts: np.ndarry
+    xcounts: np.ndarry
         1-D array of binned x-values ("bin counts") of length M.
-    ycnts: np.ndarry
+    ycounts: np.ndarry
         1-D array of binned y-values ("bin averages") of length M.
     bwdisc: int
         Number of logarithmically equally-spaced bandwidths
@@ -211,7 +211,7 @@ def combine_bincounts_kernel_weights(
     # a) Bandwidth is a scalar
     if bwdisc == 1:
         for g in range(M):
-            if xcnts[g] != 0:
+            if xcounts[g] != 0:
                 for j in range(max(0, g - L - 1), min(M, g + L)):
 
                     # Only consider values within the range of fkap.
@@ -220,23 +220,23 @@ def combine_bincounts_kernel_weights(
 
                             fac = 1
 
-                            ss[j, 0] += xcnts[g] * fkap[g - j + midpt - 1]
-                            tt[j, 0] += ycnts[g] * fkap[g - j + midpt - 1]
+                            ss[j, 0] += xcounts[g] * fkap[g - j + midpt - 1]
+                            tt[j, 0] += ycounts[g] * fkap[g - j + midpt - 1]
 
                             for ii in range(1, ppp):
                                 fac = fac * delta * (g - j)
 
-                                ss[j, ii] += xcnts[g] * fkap[g - j + midpt - 1] * fac
+                                ss[j, ii] += xcounts[g] * fkap[g - j + midpt - 1] * fac
 
                                 if ii < pp:
                                     tt[j, ii] += (
-                                        ycnts[g] * fkap[g - j + midpt - 1] * fac
+                                        ycounts[g] * fkap[g - j + midpt - 1] * fac
                                     )
 
     # b) Bandwidth is a list or np.ndarray of length M
     else:
         for g in range(M):
-            if xcnts[g] != 0:
+            if xcounts[g] != 0:
 
                 # Repeat this process bwdisc times.
                 for i in range(bwdisc):
@@ -248,20 +248,22 @@ def combine_bincounts_kernel_weights(
 
                                 fac = 1
 
-                                ss[j, 0] += xcnts[g] * fkap[g - j + midpt[i] - 1]
+                                ss[j, 0] += xcounts[g] * fkap[g - j + midpt[i] - 1]
 
-                                tt[j, 0] += ycnts[g] * fkap[g - j + midpt[i] - 1]
+                                tt[j, 0] += ycounts[g] * fkap[g - j + midpt[i] - 1]
 
                                 for ii in range(1, ppp):
                                     fac = fac * delta * (g - j)
 
                                     ss[j, ii] += (
-                                        xcnts[g] * fkap[g - j + midpt[i] - 1] * fac
+                                        xcounts[g] * fkap[g - j + midpt[i] - 1] * fac
                                     )
 
                                     if ii < pp:
                                         tt[j, ii] += (
-                                            ycnts[g] * fkap[g - j + midpt[i] - 1] * fac
+                                            ycounts[g]
+                                            * fkap[g - j + midpt[i] - 1]
+                                            * fac
                                         )
 
     return ss, tt

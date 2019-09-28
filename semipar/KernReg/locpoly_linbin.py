@@ -27,9 +27,11 @@ def bin_counts_and_averages(x, y, M=401, a=None, delta=None, truncate=True):
     Parameters
     ----------
     x: np.ndarray
-        Array of predictor variables.
+        Array of the predictor variable(s). Shape (N, r).
+        Missing values are not accepted. Must be sorted.
     y: np.ndarray
-        Array of the response variable. One-dimensional.
+        Array of the response variable of length N.
+        Missing values are not accepted. Must come presorted by x.
     M: int
         Length of the grid mesh over which x and y are to be evaluated.
     a: float
@@ -73,7 +75,7 @@ def bin_counts_and_averages(x, y, M=401, a=None, delta=None, truncate=True):
 
     for g in range(M):
         # np.where(li == g) returns a tuple with the first element
-        # being an np.ndarry containing indeces. These indices denote where
+        # being an np.ndarry containing indices. These indices denote where
         # an entry in li is equal to the respective gridpoint g.
         if len(np.where(li == g)[0]) > 0:
             # In case more than one entry in li euqals g,
