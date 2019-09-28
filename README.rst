@@ -12,7 +12,8 @@ grmpy-semipar
 
 In the future, this semiparametric estimation method will be added to the open-source Python package ``grmpy``. Currently, ``grmpy`` is limited to the estimation of a parametric normal version of the generalized Roy model. 
 
-For more, see the [online documentation](http://grmpy.readthedocs.io/) .
+For more, see the [online documentation](http://grmpy.readthedocs.io/).
+
 
 ----------------------------------------------------------------------------------------
 
