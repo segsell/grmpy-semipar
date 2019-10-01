@@ -1,8 +1,10 @@
 """This module contains a function that implements the linear binning procedure."""
 import numpy as np
+from numba import jit
 
 
-def bin_counts_and_averages(x, y, M=401, a=None, delta=None, truncate=True):
+@jit(nopython=True)
+def linear_binning(x, y, M, a, delta, truncate=True):
     """
     This function generates bin counts and bin averages over an equally spaced
     grid via the linear binning strategy.
@@ -20,20 +22,21 @@ def bin_counts_and_averages(x, y, M=401, a=None, delta=None, truncate=True):
     attached to the two nearest bin centers, namely (1 - rem) for the bin
     considered and rem for the next bin.
 
-    If trunctate is True, end observations are truncated.
+    If truncate is True, end observations are truncated.
     Otherwise, weight from end observations is given to corresponding
     end grid points.
 
     Parameters
     ----------
     x: np.ndarray
-        Array of the predictor variable(s). Shape (N, r).
+        Array of the predictor variable. Shape (N,).
         Missing values are not accepted. Must be sorted.
     y: np.ndarray
-        Array of the response variable of length N.
+        Array of the response variable. Shape (N,).
         Missing values are not accepted. Must come presorted by x.
     M: int
-        Length of the grid mesh over which x and y are to be evaluated.
+        Gridsize, i.e. number of equally-spaced grid points
+        over which x and y are to be evaluated.
     a: float
         Start point of the grid.
     delta: float
@@ -48,23 +51,13 @@ def bin_counts_and_averages(x, y, M=401, a=None, delta=None, truncate=True):
     ycounts: np.ndarry
         Array of binned y-values ("bin averages") of length M.
     """
-    # Turn r-dimensional array into 1-d array.
-    if x.ndim > 1:
-        x = x.ravel()
-
-    # Set bin width if not given.
-    if delta is None:
-        a = min(x)
-        b = max(x)
-        delta = (b - a) / (M - 1)
-
     n = len(x)
 
     xcounts = np.zeros(M)
     ycounts = np.zeros(M)
     lxi = np.zeros(n)
-    li = np.zeros(n)
     rem = np.zeros(n)
+    li = [0] * n
 
     for i in range(n):
         lxi[i] = ((x[i] - a) / delta) + 1
@@ -73,52 +66,43 @@ def bin_counts_and_averages(x, y, M=401, a=None, delta=None, truncate=True):
         li[i] = int(lxi[i])
         rem[i] = lxi[i] - li[i]
 
-    for g in range(M):
-        # np.where(li == g) returns a tuple with the first element
-        # being an np.ndarry containing indices. These indices denote where
-        # an entry in li is equal to the respective gridpoint g.
-        if len(np.where(li == g)[0]) > 0:
-            # In case more than one entry in li euqals g,
-            # go through all of them one by one.
-            for j in range(len(np.where(li == g)[0])):
+    for gridpoint in range(M):
+        indices = [i for i, element in enumerate(li) if element == gridpoint]
 
-                xcounts[g - 1] += 1 - rem[np.where(li == g)[0][j]]
-                xcounts[g] += rem[np.where(li == g)[0][j]]
+        for index in indices:
+            xcounts[gridpoint - 1] += 1 - rem[index]
+            xcounts[gridpoint] += rem[index]
 
-                # If the predictor variable x is multidimensional and hence
-                # len(x) is larger than len(y), consider only values
-                # in range of y.
-                if (np.where(li == g)[0][j]) in range(len(y)):
-                    ycounts[g - 1] += (1 - rem[np.where(li == g)[0][j]]) * y[
-                        np.where(li == g)[0][j]
-                    ]
-
-                    ycounts[g] += (
-                        rem[np.where(li == g)[0][j]] * y[np.where(li == g)[0][j]]
-                    )
+            ycounts[gridpoint - 1] += (1 - rem[index]) * y[index]
+            ycounts[gridpoint] += rem[index] * y[index]
 
     # By default, end observations are truncated.
-    for i in range(n):
-        if truncate is True:
-            pass
+    if truncate is True:
+        pass
 
-        # Truncation is implicit if there are no points in li
-        # beyond the grid's boundary points.
-        elif 1 <= li[i] < M:
-            pass
+    # Truncation is implicit if there are no points in li
+    # beyond the grid's boundary points.
+    # Note that li is sorted. So it is sufficient to check if
+    # the conditions below hold for the bottom and top
+    # observation, respectively
+    elif 1 <= li[0] and li[n - 1] < M:
+        pass
 
-        # If truncate=False, weight from end observations is given to
-        # corresponding end grid points.
-        elif li[i] < 1 and truncate is False:
-            if len(np.where(li < 1)[0]) > 0:
-                for j in range(len(np.where(li < 1)[0])):
-                    xcounts[0] += 1
-                    ycounts[0] += [np.where(li < 1)[0][j]]
+    # If truncate=False, weight from end observations is given to
+    # corresponding end grid points.
+    # elif li[i] < 1 and truncate is False:
+    elif truncate is False:
+        indices_bottom = [i for i, element in enumerate(li) if element < 1]
 
-        elif li[i] >= M and truncate is False:
-            if len(np.where(li == M)[0]) > 0:
-                for j in range(len(np.where(li == M)[0])):
-                    xcounts[M - 1] += 1
-                    ycounts[M - 1] += y[np.where(li == M)[0][j]]
+        for index in indices_bottom:
+            xcounts[0] += 1
+            ycounts[0] += y[index]
+
+        # elif li[i] >= M:
+        indices_top = [i for i, element in enumerate(li) if element >= M]
+
+        for index in indices_top:
+            xcounts[M - 1] += 1
+            ycounts[M - 1] += y[index]
 
     return xcounts, ycounts

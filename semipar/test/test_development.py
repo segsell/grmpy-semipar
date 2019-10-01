@@ -19,12 +19,10 @@ def test_replication():
     mte_u, the first derivative of a local polynomial estimator
     of degree 2.
     """
-    quantiles, test_mte_u, test_mte_x, test_mte = semipar_fit(
-        "files/replication.test.yml"
-    )
+    quantiles, test_mte_u, test_mte_x, test_mte = semipar_fit("replication.test.yml")
 
-    expected_mte_u = pd.read_pickle("data/replication-results-mte_u.pkl")
-    # expected_mte = pd.read_pickle("data/replication-results-mte.pkl")
+    expected_mte_u = pd.read_pickle("replication-results-mte_u.pkl")
+    # expected_mte = pd.read_pickle("replication-results-mte.pkl")
 
     assert_equal(test_mte_u, expected_mte_u)
     # assert_equal(test_mte, expected_mte)

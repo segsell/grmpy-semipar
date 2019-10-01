@@ -3,12 +3,10 @@ This module provides a function for the estimation of a local polynomial
 kernel regression.
 """
 import numpy as np
-import math
 
-from semipar.KernReg.locpoly_linbin import bin_counts_and_averages
+from semipar.KernReg.locpoly_linbin import linear_binning
 
 from semipar.KernReg.locpoly_auxiliary import combine_bincounts_kernel_weights
-from semipar.KernReg.locpoly_auxiliary import discretize_bandwidths
 from semipar.KernReg.locpoly_auxiliary import get_curve_estimator
 from semipar.KernReg.locpoly_auxiliary import get_kernel_weights
 from semipar.KernReg.locpoly_auxiliary import is_sorted
@@ -23,7 +21,6 @@ def locpoly(
     gridsize=401,
     a=None,
     b=None,
-    bwdisc=25,
     binned=False,
     truncate=True,
 ):
@@ -112,13 +109,8 @@ def locpoly(
     if b is None:
         b = max(x)
 
-    # Rename global variables
-    drv = derivative
-    bw = bandwidth
-    M = gridsize
-
-    pp = degree + 1
-    ppp = 2 * degree + 1
+    dimss = 2 * degree + 1
+    dimtt = degree + 1
 
     # tau is chosen so that the interval [-tau, tau] is the
     # "effective support" of the Gaussian kernel,
@@ -128,41 +120,28 @@ def locpoly(
     tau = 4
 
     # Set the bin width
-    delta = (b - a) / (M - 1)
+    delta = (b - a) / (gridsize - 1)
 
-    # 1a. Bin the data if not already binned
+    # 1. Bin the data if not already binned
     if binned is False:
-        xcounts, ycounts = bin_counts_and_averages(x, y, M, a, delta, truncate)
+        xcounts, ycounts = linear_binning(x, y, gridsize, a, delta, truncate)
     else:
         xcounts, ycounts = x, y
-
-    # 1b. Discretize the bandwidths (only necessary if len(bw) == M)
-    if isinstance(bw, (float, int)) or len(bw) == 1:
-        Q = 1
-        L = math.floor(tau * bw / delta)
-        hdisc = bw
-        # Index set
-        indic = np.ones(M)
-
-    else:
-        Q = bwdisc
-        hdisc, L, indic = discretize_bandwidths(bw, M, Q, delta)
 
     # 2. Obtain kernel weights
     # Note that only L < N kernel evaluations are required to obtain the
     # kernel weights (fkap) regardless of the number of observations N.
-    fkap, dimfkap, midpt = get_kernel_weights(L, Q, delta, hdisc)
+    L, lenfkap, fkap, mid = get_kernel_weights(tau, bandwidth, delta)
 
     # 3. Combine bin counts and kernel weights
     ss, tt = combine_bincounts_kernel_weights(
-        xcounts, ycounts, Q, M, pp, ppp, dimfkap, fkap, L, midpt, indic, delta
+        xcounts, ycounts, gridsize, dimss, dimtt, L, lenfkap, fkap, mid, delta
     )
 
     # Fit the curve and obtain estimator for the desired derivative
-    curvest = get_curve_estimator(ss, tt, pp, drv, M)
-    curvest = math.gamma(drv + 1) * curvest
+    curvest = get_curve_estimator(ss, tt, dimtt, derivative, gridsize)
 
     # Generate grid points for visual representation
-    gridpoints = np.linspace(a, b, M)
+    gridpoints = np.linspace(a, b, gridsize)
 
     return gridpoints, curvest

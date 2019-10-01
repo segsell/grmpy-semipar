@@ -1,6 +1,10 @@
 ---
+SIMULATION:
+    seed: 5133
+    agents: 10000
+    source: mc
 ESTIMATION:
-    file: data / aer - replication - mock.pkl
+    file: aer-replication-mock.pkl
     dependent: wage
     indicator: state
     output_file: replication.grmp.info
@@ -109,3 +113,19 @@ CHOICE:
     - pub4numsibs
     - pub4mhgc
     - pub4cafqt
+DIST:
+    params:
+    - 0.1
+    - 0.0
+    - 0.0
+    - 0.1
+    - 0.0
+    - 1.0
+VARTYPES:
+    const: nonbinary
+SCIPY-BFGS:
+    gtol: 1.0e-05
+    eps: 1.4901161193847656e-08
+SCIPY-POWELL:
+    xtol: 0.0001
+    ftol: 0.0001
