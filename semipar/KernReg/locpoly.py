@@ -6,9 +6,9 @@ import numpy as np
 
 from semipar.KernReg.locpoly_linbin import linear_binning
 
-from semipar.KernReg.locpoly_auxiliary import combine_bincounts_kernel_weights
+from semipar.KernReg.locpoly_auxiliary import combine_bincounts_kernelweights
 from semipar.KernReg.locpoly_auxiliary import get_curve_estimator
-from semipar.KernReg.locpoly_auxiliary import get_kernel_weights
+from semipar.KernReg.locpoly_auxiliary import get_kernelweights
 from semipar.KernReg.locpoly_auxiliary import is_sorted
 
 
@@ -19,8 +19,8 @@ def locpoly(
     degree,
     bandwidth,
     gridsize=401,
-    a=None,
-    b=None,
+    startgrid=None,
+    endgrid=None,
     binned=False,
     truncate=True,
 ):
@@ -39,9 +39,10 @@ def locpoly(
 
     X'W X * beta_ = X'W y,
 
-    where W are kernel weights. X'W X and X'W y are approximated by ss and tt,
-    which are the result of a direct convolution of bin counts and kernel
-    weights, or bin averages and kernel weights, respectively.
+    where W are kernel weights approximated by the Gaussian density function.
+    X'W X and X'W y are approximated by weigthedx and weigthedy,
+    which are the result of a direct convolution of bin counts (xcounts) and kernel
+    weights, and bin averages (ycounts) and kernel weights, respectively.
 
     A binned approximation over an equally-spaced grid is used for fast
     computation. Fan and Marron (1994) recommend a default gridsize of M = 400
@@ -76,14 +77,10 @@ def locpoly(
     gridsize: int
         Number of equally-spaced grid points over which the function is to be
         estimated.
-    a: float
+    startgrid: float
         Start point of the grid mesh.
-    b: float
+    endgrid: float
         End point of the grid mesh.
-    bwdisc: int
-        Number of logarithmically equally-spaced bandwidths on which local
-        bandwidths are discretized, to speed up computation.
-        Only relevant if bandwidth is a list or np.ndarry of length gridsize.
     binned: bool
         If True, then x and y are taken to be bin counts rather than raw data
         and the binning step is skipped.
@@ -103,14 +100,14 @@ def locpoly(
     if is_sorted(x) is False:
         raise Warning("Input arrays x and y must be sorted by x before estimation!")
 
-    if a is None:
-        a = min(x)
+    if startgrid is None:
+        startgrid = min(x)
 
-    if b is None:
-        b = max(x)
+    if endgrid is None:
+        endgrid = max(x)
 
-    dimss = 2 * degree + 1
-    dimtt = degree + 1
+    colx = 2 * degree + 1
+    coly = degree + 1
 
     # tau is chosen so that the interval [-tau, tau] is the
     # "effective support" of the Gaussian kernel,
@@ -120,28 +117,37 @@ def locpoly(
     tau = 4
 
     # Set the bin width
-    delta = (b - a) / (gridsize - 1)
+    binwidth = (endgrid - startgrid) / (gridsize - 1)
 
     # 1. Bin the data if not already binned
     if binned is False:
-        xcounts, ycounts = linear_binning(x, y, gridsize, a, delta, truncate)
+        xcounts, ycounts = linear_binning(x, y, gridsize, startgrid, binwidth, truncate)
     else:
         xcounts, ycounts = x, y
 
     # 2. Obtain kernel weights
     # Note that only L < N kernel evaluations are required to obtain the
-    # kernel weights (fkap) regardless of the number of observations N.
-    L, lenfkap, fkap, mid = get_kernel_weights(tau, bandwidth, delta)
+    # kernel weights regardless of the number of observations N.
+    L, lenkernel, kernelweights, mid = get_kernelweights(tau, bandwidth, binwidth)
 
     # 3. Combine bin counts and kernel weights
-    ss, tt = combine_bincounts_kernel_weights(
-        xcounts, ycounts, gridsize, dimss, dimtt, L, lenfkap, fkap, mid, delta
+    weightedx, weigthedy = combine_bincounts_kernelweights(
+        xcounts,
+        ycounts,
+        gridsize,
+        colx,
+        coly,
+        L,
+        lenkernel,
+        kernelweights,
+        mid,
+        binwidth,
     )
 
     # Fit the curve and obtain estimator for the desired derivative
-    curvest = get_curve_estimator(ss, tt, dimtt, derivative, gridsize)
+    curvest = get_curve_estimator(weightedx, weigthedy, coly, derivative, gridsize)
 
     # Generate grid points for visual representation
-    gridpoints = np.linspace(a, b, gridsize)
+    gridpoints = np.linspace(startgrid, endgrid, gridsize)
 
     return gridpoints, curvest
