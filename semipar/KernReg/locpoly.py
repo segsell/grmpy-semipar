@@ -144,7 +144,7 @@ def locpoly(
         binwidth,
     )
 
-    # Fit the curve and obtain estimator for the desired derivative
+    # 4. Fit the curve and obtain estimator for the desired derivative
     curvest = get_curve_estimator(weightedx, weigthedy, coly, derivative, gridsize)
 
     # Generate grid points for visual representation

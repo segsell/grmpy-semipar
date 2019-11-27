@@ -21,6 +21,7 @@ def estimate_treatment_propensity(D, Z, logit, show_output):
     """
     if logit is True:
         logitRslt = sm.Logit(D, Z).fit(disp=0)
+        gamma = logitRslt.params
         ps = logitRslt.predict(Z)
 
         if show_output is True:
@@ -28,12 +29,13 @@ def estimate_treatment_propensity(D, Z, logit, show_output):
 
     else:
         probitRslt = sm.Probit(D, Z).fit(disp=0)
+        gamma = probitRslt.params
         ps = probitRslt.predict(Z)
 
         if show_output is True:
             print(probitRslt.summary())
 
-    return ps.values
+    return gamma, ps.values
 
 
 def define_common_support(ps, indicator, data, nbins=25, show_output=True):
@@ -89,7 +91,7 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
             lower_limit = np.min(treated[:, 1])
 
         else:
-            # print("Premature lower limit found!")
+            print("Premature lower limit found!")
             lower_limit = hist_untreated[1][l + 1]
 
             break
@@ -103,7 +105,7 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
             upper_limit = np.max(untreated[:, 1])
 
         else:
-            # print("Premature upper limit found!")
+            print("Premature upper limit found!")
             upper_limit = hist_untreated[1][u]
 
             break
@@ -142,7 +144,7 @@ def trim_data(ps, common_support, data, show_output=True):
 
 def construct_Xp(X, ps):
     """
-    This function generates the X * ps regressor.
+    This function generates the X * ps regressors.
     """
     # To multiply each elememt in X (shape N x k) with the corresponding ps,
     # set up a ps matrix of same size.
@@ -158,25 +160,25 @@ def construct_Xp(X, ps):
     return Xp
 
 
-def generate_residuals(exog, endog, bandwidth=0.05):
+def generate_residuals(x, y, bandwidth=0.05):
     """ 
-    This function runs a series of separate loess regressions of a set of
-    outcome variables (endog) on a single explanatory variable (exog) and 
-    computes the corresponding residuals.
+    This function runs a series of loess regressions for different
+    response variables (y) on a single explanatory variable (x)
+    and computes the corresponding residuals.
     """
     # Turn input data into np.ndarrays.
-    exog = np.array(exog)
-    endog = np.array(endog)
+    y = np.array(y)
+    x = np.array(x)
 
     # Determine number of observations and number of columns for the
     # outcome variable.
-    N = len(endog)
-    col_len = len(endog[0])
+    N = len(y)
+    col_len = len(y[0])
 
     res = np.zeros([N, col_len])
 
     for i in range(col_len):
-        yfit = loess(exog, endog[:, i], span=bandwidth, degree=1)
+        yfit = loess(x, y[:, i], span=bandwidth, degree=1)
         yfit.fit()
         res[:, i] = yfit.outputs.fitted_residuals
 

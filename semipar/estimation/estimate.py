@@ -50,7 +50,7 @@ def semipar_fit(init_file):
     # The Local Instrumental Variables (LIV) approach
 
     # 1. Estimate propensity score P(z)
-    ps = estimate_treatment_propensity(D, Z, logit, show_output)
+    gamma, ps = estimate_treatment_propensity(D, Z, logit, show_output)
 
     # 2a. Find common support
     treated, untreated, common_support = define_common_support(
@@ -68,7 +68,7 @@ def semipar_fit(init_file):
 
     X = data[dict_["TREATED"]["order"]]
     Xp = construct_Xp(X, ps)
-    Y = data[["wage"]]
+    Y = data[[dict_["ESTIMATION"]["dependent"]]]
 
     b0, b1_b0 = double_residual_reg(ps, X, Xp, Y, rbandwidth, show_output)
 
