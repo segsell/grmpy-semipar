@@ -7,6 +7,7 @@ from scipy.optimize import minimize
 from sklearn.utils import resample
 from matplotlib import pyplot
 from scipy.stats import norm
+from scipy.ndimage.filters import gaussian_filter1d
 
 from semipar.estimation.estimate_auxiliary import estimate_treatment_propensity
 #from semipar.estimation.estimate_auxiliary import define_common_support
@@ -192,31 +193,17 @@ def par_fit(init_file):
 def parametric_mte(rslt, file):
     """This function calculates the marginal treatment effect for different quartiles
     of the unobservable V based on the calculation results."""
-    rslt = rslt
-
     init_dict = read(file)
     data_frame = pd.read_pickle(init_dict["ESTIMATION"]["file"])
-
-    indicator = init_dict["ESTIMATION"]["indicator"]
-    Z = data_frame[init_dict["CHOICE"]["order"]]
-
-    logit = init_dict["ESTIMATION"]["logit"]
-
-    if logit is True:
-        logitRslt = sm.Logit(data_frame[indicator], Z).fit(disp=0)
-        ps = logitRslt.predict(Z)
-
-    else:
-        probitRslt = sm.Probit(data_frame[indicator], Z).fit(disp=0)
-        ps = probitRslt.predict(Z)
 
     # Define quantiles and read in the original results
     quantiles = [0.0001] + np.arange(0.01, 1.0, 0.01).tolist() + [0.9999]
 
     # Calculate the MTE and confidence intervals
     mte = calculate_mte(rslt, data_frame, quantiles)
+    mte_up, mte_d = calculate_cof_int(rslt, init_dict, data_frame, mte, quantiles)
 
-    return quantiles, mte, ps
+    return quantiles, mte, mte_up, mte_d
 
 
 
@@ -224,16 +211,14 @@ def calculate_cof_int(rslt, init_dict, data_frame, mte, quantiles):
     """This function calculates the confidence intervals of
     the parametric marginal treatment effect.
     """
-    rslt = rslt
-
     # Import parameters and inverse hessian matrix
     hess_inv = rslt["AUX"]["hess_inv"] / data_frame.shape[0]
     params = rslt["AUX"]["x_internal"]
     numx = len(init_dict["TREATED"]["order"]) + len(init_dict["UNTREATED"]["order"])
 
     # Distribute parameters
-    dist_cov = hess_inv[-4:, -4:]
-    param_cov = hess_inv[:numx, :numx]
+    dist_cov = hess_inv[-4:, -4:] * (-1)
+    param_cov = hess_inv[:numx, :numx] * (-1)
     dist_gradients = np.array([params[-4], params[-3], params[-2], params[-1]])
 
     # Process data
@@ -258,6 +243,89 @@ def calculate_cof_int(rslt, init_dict, data_frame, mte, quantiles):
         mte_d += [mte[counter] - norm.ppf(0.95) * aux]
 
     return mte_up, mte_d
+
+
+def par_weights(rslt, mte, quantiles, file, smooth_tt=0, smooth_tut=0, output=None):
+    """This function generates weights for the conventional treatment parameters
+    ATE, TT, and TUT."""
+
+    init_dict = read(file)
+    data_frame = pd.read_pickle(init_dict["ESTIMATION"]["file"])
+
+    indicator = init_dict["ESTIMATION"]["indicator"]
+    Z = data_frame[init_dict["CHOICE"]["order"]]
+
+    logit = init_dict["ESTIMATION"]["logit"]
+
+    if logit is True:
+        logitRslt = sm.Logit(data_frame[indicator], Z).fit(disp=0)
+        gamma = logitRslt.params
+        ps = logitRslt.predict(Z)
+
+    else:
+        probitRslt = sm.Probit(data_frame[indicator], Z).fit(disp=0)
+        gamma = probitRslt.params
+        ps = probitRslt.predict(Z)
+
+    propensity_mean = np.mean(ps)
+
+    dist = rslt['AUX']['x_internal'][-4:]
+    cov1v = dist[0] * dist[1]
+    cov0v = dist[2] * dist[3]
+
+    tt = []
+    tut = []
+    ols = []
+
+    aux2 = norm.cdf(np.dot(gamma, Z.T))
+
+    for i in quantiles:
+        tt += [(len([j for j in aux2 if j > i]) / Z.shape[0]) / (propensity_mean)]
+        tut += [(1 - len([j for j in aux2 if j > i]) / Z.shape[0]) / (1 - propensity_mean)]
+
+    for counter, i in enumerate(quantiles):
+        if mte[counter] == 0:
+            ols += 0
+        else:
+            ols += [1 + ((cov1v * norm.ppf(i) * tt[counter] - cov0v * norm.ppf(i) * tut[counter]) / mte[counter])]
+
+    pyplot.rcParams['figure.figsize'] = [17.5, 10]
+    ax1 = pyplot.figure().add_subplot(111)
+    ax1.set_ylabel(r"$B^{MTE}$", fontsize=24)
+    ax1.set_xlabel("$u_D$", fontsize=24)
+    ax1.tick_params(axis='both', which='major', labelsize=18)
+    ax1.set_ylim([-0.5, 0.55])
+
+    l1 = ax1.plot(quantiles, mte, color='blue', label=' $MTE$', linewidth=3.0)
+
+    tt_arr = np.sort(np.array(tt))[::-1]
+    tt_s = gaussian_filter1d(tt_arr, sigma=smooth_tt)
+
+    tut_arr = np.sort(np.array(tut))
+    tut_s = gaussian_filter1d(tut_arr, sigma=smooth_tut)
+
+    ate_s = [1.0] * len(tt_s)
+
+    xs = np.arange(0.001, 1., (1 - 0.001) / len(tt_s)).tolist()
+
+    ax2 = ax1.twinx()
+    ax2.tick_params(axis='both', which='major', labelsize=18)
+
+    l2 = ax2.plot(xs, tt_s, color='red', linestyle='--', label=' $\omega^{TT}$', linewidth=3.0)
+    l3 = ax2.plot(xs, tut_s, color='green', linestyle='--', label=' $\omega^{TUT}$', linewidth=3.0)
+    l4 = ax2.plot(xs, ate_s, color='orange', linestyle='-.', label=' $\omega^{ATE}$', linewidth=3.0)
+
+    ax2.set_xlim([-0.005, 1.005])
+    ax2.set_ylabel(r"$\omega(u_D)$", fontsize=24)
+    pyplot.tight_layout()
+
+    lns = l1 + l2 + l3 + l4
+    labs = [l.get_label() for l in lns]
+
+    ax1.legend(lns, labs, loc=0, prop={"size": 24}, frameon=False)
+    pyplot.savefig('{}.png'.format(output), dpi=300)
+
+    return tt, tut
 
 
 # def estimate_treatment_propensity(D, Z, logit, show_output):
@@ -339,7 +407,7 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
             lower_limit = np.min(treated[:, 1])
 
         # else:
-        #     print("Premature lower limit found!")
+        #     print("Lower limit found!")
         #     lower_limit = hist_untreated[1][l + 1]
         #
         #     break
@@ -354,7 +422,7 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
             upper_limit = np.max(untreated[:, 1])
 
         # else:
-        #     print("Premature upper limit found!")
+        #     print("Upper limit found!")
         #     upper_limit = hist_untreated[1][u]
         #
         #     break
@@ -402,8 +470,6 @@ def plot_common_support(init_file, nbins, savefig=True):
 
     treated = treated[:, 1].tolist()
     untreated = untreated[:, 1].tolist()
-
-    names = ['Treated', 'Untreated']
 
     # Make the histogram using a list of lists
     fig = pyplot.figure(figsize=(13.5, 8))
