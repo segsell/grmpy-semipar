@@ -15,7 +15,7 @@ ESTIMATION:
     comparison: 0
     print_output: 0
     semipar: True
-    show_output: False
+    show_output: True
     logit: True
     nbins: 25
     trim_support: True
