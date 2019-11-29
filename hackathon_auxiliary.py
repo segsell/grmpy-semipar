@@ -77,10 +77,10 @@ def bootstrap(init_file, nbootstraps):
         # The Local Instrumental Variables (LIV) approach
 
         # 1. Estimate propensity score P(z)
-        gamma, ps = estimate_treatment_propensity(D, Z, logit, show_output)
+        ps = estimate_treatment_propensity(D, Z, logit, show_output)
 
 
-        if isinstance(ps, np.ndarray) & (np.min(ps) <= 0.3) & (np.max(ps) >= 0.7):
+        if isinstance(ps, np.ndarray): #& (np.min(ps) <= 0.3) & (np.max(ps) >= 0.7):
 
             # 2a. Find common support
             treated, untreated, common_support = define_common_support(
@@ -192,18 +192,31 @@ def par_fit(init_file):
 def parametric_mte(rslt, file):
     """This function calculates the marginal treatment effect for different quartiles
     of the unobservable V based on the calculation results."""
+    rslt = rslt
 
     init_dict = read(file)
     data_frame = pd.read_pickle(init_dict["ESTIMATION"]["file"])
 
-    # Define the Quantiles and read in the original results
+    indicator = init_dict["ESTIMATION"]["indicator"]
+    Z = data_frame[init_dict["CHOICE"]["order"]]
+
+    logit = init_dict["ESTIMATION"]["logit"]
+
+    if logit is True:
+        logitRslt = sm.Logit(data_frame[indicator], Z).fit(disp=0)
+        ps = logitRslt.predict(Z)
+
+    else:
+        probitRslt = sm.Probit(data_frame[indicator], Z).fit(disp=0)
+        ps = probitRslt.predict(Z)
+
+    # Define quantiles and read in the original results
     quantiles = [0.0001] + np.arange(0.01, 1.0, 0.01).tolist() + [0.9999]
 
     # Calculate the MTE and confidence intervals
     mte = calculate_mte(rslt, data_frame, quantiles)
-    mte_up, mte_d = calculate_cof_int(rslt, init_dict, data_frame, mte, quantiles)
 
-    return quantiles, mte, mte_up, mte_d
+    return quantiles, mte, ps
 
 
 
@@ -211,6 +224,7 @@ def calculate_cof_int(rslt, init_dict, data_frame, mte, quantiles):
     """This function calculates the confidence intervals of
     the parametric marginal treatment effect.
     """
+    rslt = rslt
 
     # Import parameters and inverse hessian matrix
     hess_inv = rslt["AUX"]["hess_inv"] / data_frame.shape[0]
@@ -345,8 +359,8 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
         #
         #     break
 
-    #lower_limit = np.min(treated[:, 1])
-    #upper_limit = np.max(untreated[:, 1])
+    # lower_limit = np.min(treated[:, 1])
+    # upper_limit = np.max(untreated[:, 1])
 
     common_support = [lower_limit, upper_limit]
 
@@ -362,6 +376,60 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
         )
 
     return treated, untreated, common_support
+
+
+def plot_common_support(init_file, nbins, savefig=True):
+    """This function plots histograms of the treated and untreated population
+    to assess the common support of the propensity score"""
+    dict_ = read(init_file)
+
+    # Distribute initialization information.
+    data = read_data(dict_["ESTIMATION"]["file"])
+
+    # Process data for the semiparametric estimation.
+    indicator = dict_["ESTIMATION"]["indicator"]
+    D = data[indicator].values
+    Z = data[dict_["CHOICE"]["order"]]
+    logit = dict_["ESTIMATION"]["logit"]
+
+    # estimate propensity score
+    ps = estimate_treatment_propensity(D, Z, logit, show_output=False)
+
+    data["ps"] = ps
+
+    treated = data[[indicator, "ps"]][data[indicator] == 1].values
+    untreated = data[[indicator, "ps"]][data[indicator] == 0].values
+
+    treated = treated[:, 1].tolist()
+    untreated = untreated[:, 1].tolist()
+
+    names = ['Treated', 'Untreated']
+
+    # Make the histogram using a list of lists
+    fig = pyplot.figure(figsize=(13.5, 8))
+    hist = pyplot.hist([treated, untreated], bins=nbins,
+                    weights=[np.ones(len(treated)) / len(treated), np.ones(len(untreated)) / len(untreated)],
+                    density=0,
+                    alpha=0.55,
+                    label=["Treated", "Unreated"]
+                    # stacked=True
+                    # color = colors
+                    )
+
+    # Plot formatting
+    pyplot.legend(loc='upper right')
+    pyplot.xticks(np.arange(0, 1.1, step=0.1))
+    pyplot.grid(axis='y', alpha=0.25)
+    pyplot.xlabel('$P$')
+    pyplot.ylabel('$f(P)$')
+    pyplot.title('Support of $P(\hat{Z})$ for $D=1$ and $D=0$')
+
+    if savefig is True:
+        pyplot.savefig('common_support.png', dpi=300)
+
+    fig.show()
+
+
 #
 #
 # def trim_data(ps, common_support, data, show_output=True):

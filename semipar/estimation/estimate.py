@@ -38,6 +38,7 @@ def semipar_fit(init_file):
 
     nbins = dict_["ESTIMATION"]["nbins"]
     trim = dict_["ESTIMATION"]["trim_support"]
+    reestimate = dict_["ESTIMATION"]["reestimate_p"]
     rbandwidth = dict_["ESTIMATION"]["rbandwidth"]
     bandwidth = dict_["ESTIMATION"]["bandwidth"]
     gridsize = dict_["ESTIMATION"]["gridsize"]
@@ -50,7 +51,7 @@ def semipar_fit(init_file):
     # The Local Instrumental Variables (LIV) approach
 
     # 1. Estimate propensity score P(z)
-    gamma, ps = estimate_treatment_propensity(D, Z, logit, show_output)
+    ps = estimate_treatment_propensity(D, Z, logit, show_output)
 
     # 2a. Find common support
     treated, untreated, common_support = define_common_support(
@@ -60,6 +61,14 @@ def semipar_fit(init_file):
     # 2b. Trim the data
     if trim is True:
         data, ps = trim_data(ps, common_support, data, show_output)
+
+    # 2c. Re-estimate baseline propensity score on the trimmed sample
+    if reestimate is True:
+        D = data[indicator].values
+        Z = data[dict_["CHOICE"]["order"]]
+
+        # Re-estimate propensity score P(z)
+        ps = estimate_treatment_propensity(D, Z, logit, show_output)
 
     # 3. Double Residual Regression
     # Sort data by ps
@@ -90,5 +99,7 @@ def semipar_fit(init_file):
 
     # Put the MTE together
     mte = mte_x + mte_u
+
+    #X, b1_b0
 
     return quantiles, mte_u, mte_x, mte

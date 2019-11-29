@@ -21,7 +21,7 @@ def estimate_treatment_propensity(D, Z, logit, show_output):
     """
     if logit is True:
         logitRslt = sm.Logit(D, Z).fit(disp=0)
-        gamma = logitRslt.params
+        #gamma = logitRslt.params
         ps = logitRslt.predict(Z)
 
         if show_output is True:
@@ -29,13 +29,13 @@ def estimate_treatment_propensity(D, Z, logit, show_output):
 
     else:
         probitRslt = sm.Probit(D, Z).fit(disp=0)
-        gamma = probitRslt.params
+        #gamma = probitRslt.params
         ps = probitRslt.predict(Z)
 
         if show_output is True:
             print(probitRslt.summary())
 
-    return gamma, ps.values
+    return ps.values
 
 
 def define_common_support(ps, indicator, data, nbins=25, show_output=True):
@@ -62,7 +62,7 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
     if show_output is True:
         pyplot.legend(loc="upper center")
         pyplot.grid(axis="y", alpha=0.5)
-        pyplot.xlabel("Value")
+        pyplot.xlabel("P")
         pyplot.ylabel("Frequency")
         pyplot.title("Support of P(Z) for D=1 and D=0")
         fig
@@ -70,45 +70,50 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
     else:
         pyplot.close(fig)
 
-    # Find lower limit in the treated subsample.
-    # In the treated subsample (D = 1), one expects there to be more people
-    # with high propensity scores (ps approaching 1) than indiviudals with
-    # low scores (ps approaching 0).
-    # Hence, bins closer to zero tend to be smaller and are more likely to
-    # be empty than bins on the upper end of the distribution.
-    # Now, imagine a case where more than one bin is empty.
-    # Let's say one around 0.1 and another at 0.2.
-    # Running the for-loop from 1 to 0 guarantees that we find the true lower
-    # limit first, i.e. the one at 0.2, which is the "more binding" one.
-    # The opposite holds for the untreated sample.
+    if nbins is None:
+        lower_limit = np.min(treated[:, 1])
+        upper_limit = np.max(untreated[:, 1])
 
-    # Define the lower limit of the common support as the lowest propensity
-    # observed in the treated sample, unless one of the histogram bins
-    # is empty. In the latter case, take the upper end of that bin as the
-    # limit.
-    for l in reversed(range(len(hist_treated[0]))):
-        if hist_treated[0][l] > 0:
-            lower_limit = np.min(treated[:, 1])
+    else:
+        # Find lower limit in the treated subsample.
+        # In the treated subsample (D = 1), one expects there to be more people
+        # with high propensity scores (ps approaching 1) than indiviudals with
+        # low scores (ps approaching 0).
+        # Hence, bins closer to zero tend to be smaller and are more likely to
+        # be empty than bins on the upper end of the distribution.
+        # Now, imagine a case where more than one bin is empty.
+        # Let's say one around 0.1 and another at 0.2.
+        # Running the for-loop from 1 to 0 guarantees that we find the true lower
+        # limit first, i.e. the one at 0.2, which is the "more binding" one.
+        # The opposite holds for the untreated sample.
 
-        else:
-            print("Premature lower limit found!")
-            lower_limit = hist_untreated[1][l + 1]
+        # Define the lower limit of the common support as the lowest propensity
+        # observed in the treated sample, unless one of the histogram bins
+        # is empty. In the latter case, take the upper end of that bin as the
+        # limit.
+        for l in reversed(range(len(hist_treated[0]))):
+            if hist_treated[0][l] > 0:
+                lower_limit = np.min(treated[:, 1])
 
-            break
+            else:
+                print("Lower limit found!")
+                lower_limit = hist_untreated[1][l + 1]
 
-    # Define the upper limit of the common support as the lowest propensity
-    # observed in the untreated sample, unless one of the histogram bins
-    # is empty. In the latter case, take the bottom end of that bin as the
-    # limit.
-    for u in range(len(hist_untreated[0])):
-        if hist_untreated[0][u] > 0:
-            upper_limit = np.max(untreated[:, 1])
+                break
 
-        else:
-            print("Premature upper limit found!")
-            upper_limit = hist_untreated[1][u]
+        # Define the upper limit of the common support as the lowest propensity
+        # observed in the untreated sample, unless one of the histogram bins
+        # is empty. In the latter case, take the bottom end of that bin as the
+        # limit.
+        for u in range(len(hist_untreated[0])):
+            if hist_untreated[0][u] > 0:
+                upper_limit = np.max(untreated[:, 1])
 
-            break
+            else:
+                print("Upper limit found!")
+                upper_limit = hist_untreated[1][u]
+
+                break
 
     common_support = [lower_limit, upper_limit]
 
