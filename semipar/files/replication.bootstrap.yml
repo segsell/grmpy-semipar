@@ -19,6 +19,7 @@ ESTIMATION:
     logit: True
     nbins: 25
     trim_support: True
+    reestimate_p: False
     rbandwidth: 0.05
     derivative: 1
     degree: 2
