@@ -95,11 +95,9 @@ def semipar_fit(init_file):
 
     # 6. construct MTE
     # Calculate the MTE component that depends on X
-    mte_x = np.dot(X, b1_b0).mean(axis=0)
+    # mte_x = np.dot(X, b1_b0).mean(axis=0)
 
     # Put the MTE together
-    mte = mte_x + mte_u
+    # mte = mte_x + mte_u
 
-    #X, b1_b0
-
-    return quantiles, mte_u, mte_x, mte
+    return quantiles, mte_u, X, b1_b0
