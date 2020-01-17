@@ -7,7 +7,7 @@ import pandas as pd
 import statsmodels.api as sm
 
 from skmisc.loess import loess
-from matplotlib import pyplot
+import matplotlib.pyplot as plt
 
 
 def estimate_treatment_propensity(D, Z, logit, show_output):
@@ -21,7 +21,7 @@ def estimate_treatment_propensity(D, Z, logit, show_output):
     """
     if logit is True:
         logitRslt = sm.Logit(D, Z).fit(disp=0)
-        #gamma = logitRslt.params
+        # gamma = logitRslt.params
         ps = logitRslt.predict(Z)
 
         if show_output is True:
@@ -29,7 +29,7 @@ def estimate_treatment_propensity(D, Z, logit, show_output):
 
     else:
         probitRslt = sm.Probit(D, Z).fit(disp=0)
-        #gamma = probitRslt.params
+        # gamma = probitRslt.params
         ps = probitRslt.predict(Z)
 
         if show_output is True:
@@ -42,8 +42,8 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
     """
     This function defines the common support as the region under the histograms
     where propensities in the treated and untreated subsample overlap.
-    
-    Carneiro et al (2011) choose 25 bins for a total sample of 1747 
+
+    Carneiro et al (2011) choose 25 bins for a total sample of 1747
     observations, so nbins=25 is set as a default.
     """
     data["ps"] = ps
@@ -51,76 +51,118 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
     treated = data[[indicator, "ps"]][data[indicator] == 1].values
     untreated = data[[indicator, "ps"]][data[indicator] == 0].values
 
-    fig = pyplot.figure()
-    hist_treated = pyplot.hist(
-        treated[:, 1], bins=nbins, alpha=0.55, label="treated", density=False
-    )
-    hist_untreated = pyplot.hist(
-        untreated[:, 1], bins=nbins, alpha=0.55, label="untreated", density=False
+    treated = treated[:, 1].tolist()
+    untreated = untreated[:, 1].tolist()
+
+    # Make the histogram using a list of lists
+    fig = plt.figure(figsize=(10, 6))
+    hist = plt.hist(
+        [treated, untreated],
+        bins=nbins,
+        weights=[
+            np.ones(len(treated)) / len(treated),
+            np.ones(len(untreated)) / len(untreated),
+        ],
+        density=0,
+        alpha=0.55,
+        label=["Treated", "Unreated"],
     )
 
     if show_output is True:
-        pyplot.legend(loc="upper center")
-        pyplot.grid(axis="y", alpha=0.5)
-        pyplot.xlabel("P")
-        pyplot.ylabel("Frequency")
-        pyplot.title("Support of P(Z) for D=1 and D=0")
-        fig
+        # Plot formatting
+        plt.legend(loc="upper right")
+        plt.xticks(np.arange(0, 1.1, step=0.1))
+        plt.grid(axis="y", alpha=0.25)
+        plt.xlabel("$P$")
+        plt.ylabel("$f(P)$")
+        plt.title("Support of $P(\hat{Z})$ for $D=1$ and $D=0$")
+        # fig
 
     else:
-        pyplot.close(fig)
+        plt.close(fig)
 
     if nbins is None:
         lower_limit = np.min(treated[:, 1])
         upper_limit = np.max(untreated[:, 1])
 
+    # Find the true common support
     else:
-        # Find lower limit in the treated subsample.
-        # In the treated subsample (D = 1), one expects there to be more people
-        # with high propensity scores (ps approaching 1) than indiviudals with
-        # low scores (ps approaching 0).
-        # Hence, bins closer to zero tend to be smaller and are more likely to
-        # be empty than bins on the upper end of the distribution.
-        # Now, imagine a case where more than one bin is empty.
-        # Let's say one around 0.1 and another at 0.2.
-        # Running the for-loop from 1 to 0 guarantees that we find the true lower
-        # limit first, i.e. the one at 0.2, which is the "more binding" one.
-        # The opposite holds for the untreated sample.
+        # Treated [0][0]
+        # Set the lowest frequency observed in the treated subsample
+        # as the default for the lower limit of the common support
+        lower_limit = np.min(treated)
 
-        # Define the lower limit of the common support as the lowest propensity
-        # observed in the treated sample, unless one of the histogram bins
-        # is empty. In the latter case, take the upper end of that bin as the
-        # limit.
-        for l in reversed(range(len(hist_treated[0]))):
-            if hist_treated[0][l] > 0:
-                lower_limit = np.min(treated[:, 1])
+        # The following algorithm checks for any empty histogram bins (starting from 0 going up to 0.5).
+        # If an empty histogram bin is found, the lower_limit is set to the corresponding P(Z)
+        # value of the next bin above.
+        # This may go up to the extreme case where empty bins are found very close 0.5
+        # and the common support is very small.
+        # Below, the algorithm for the untreated sample will start from above (0.5, 1]
+        # to find the upper_limit.
+        # If no empty bin is found in the interval [0, 0.5),
+        # np.min(treated) remains the true lower limit
+        for low in range(len(hist[0][0])):
 
-            else:
-                print("Lower limit found!")
-                lower_limit = hist_untreated[1][l + 1]
-
+            # Only consider values in the interval [0, 0.5)
+            if hist[1][low] > 0.5:
                 break
 
-        # Define the upper limit of the common support as the lowest propensity
-        # observed in the untreated sample, unless one of the histogram bins
-        # is empty. In the latter case, take the bottom end of that bin as the
-        # limit.
-        for u in range(len(hist_untreated[0])):
-            if hist_untreated[0][u] > 0:
-                upper_limit = np.max(untreated[:, 1])
+            # If the algorithm starts below the sample minimum, move on to the next bin
+            elif hist[1][low] < np.min(treated):
+                continue
 
             else:
-                print("Upper limit found!")
-                upper_limit = hist_untreated[1][u]
+                # If the current bin is non-empty, we have still continuous support and
+                # the sample minimum remains our lower limit
+                if hist[0][0][low] > 0:
+                    pass
 
+                # If an empty bin is found, set the lower limit to the next bin above
+                # and move on to the next bin until P(Z) = 0.5 is reached
+                else:
+                    lower_limit = hist[1][low + 1]
+
+        # Untreated [0][1]
+        # Set the highest frequency observed in the untreated subsample
+        # as the default for the upper limit of the common support
+        upper_limit = np.max(untreated)
+
+        # The following algorithm checks for any empty histogram bins (starting from 1 going down to 0.5).
+        # If an empty histogram bin is found, the upper_limit is set to the corresponding P(Z)
+        # value of the next bin below.
+        # We may reach extreme case where empty bins are found very close 0.5
+        # and the common support is very small.
+        # The algorithm above proceeds analogously for the treated sample
+        # to find the lower limit in the interval [0, 0.5).
+        # If no empty bin is found in the interval (0.5, 1],
+        # np.max(untreated) remains the true upper limit
+        for up in reversed(range(len(hist[0][1]))):
+
+            # Only consider values in the interval (0.5, 1]
+            if hist[1][up] < 0.5:
                 break
+
+            # If the algorithm starts above the sample maximum, move on to the next bin
+            elif hist[1][up] > np.max(untreated):
+                continue
+
+            else:
+                # If the current bin is non-empty, we have still continuous support and
+                # the sample maximum remains our upper limit
+                if hist[0][1][up] > 0:
+                    pass
+
+                # If an empty bin is found, set the upper limit to the next bin below
+                # and move on to the next bin until P(Z) = 0.5 is reached
+                else:
+                    upper_limit = hist[1][up]
 
     common_support = [lower_limit, upper_limit]
 
     if show_output is True:
         print(
             """
-    Common support lies beteen: 
+    Common support lies beteen:
 
         {0} and
         {1}""".format(
@@ -131,18 +173,10 @@ def define_common_support(ps, indicator, data, nbins=25, show_output=True):
     return treated, untreated, common_support
 
 
-def trim_data(ps, common_support, data, show_output=True):
+def trim_data(ps, common_support, data):
     """This function trims the data below and above the common support."""
     data_trim = data[(data.ps >= common_support[0]) & (data.ps <= common_support[1])]
     ps_trim = ps[(ps >= common_support[0]) & (ps <= common_support[1])]
-
-    #    if show_output is True:
-    #        print("""
-    #              {0} observations ({1} percent of the sample)
-    #              have been deleted.""". format(
-    #                      data.shape[0] - data_trim.shape[0],
-    #                      100 * np.round((data.shape[0] - data_trim.shape[0]) / data.shape[0], 4)
-    #                      ))
 
     return data_trim, ps_trim
 
