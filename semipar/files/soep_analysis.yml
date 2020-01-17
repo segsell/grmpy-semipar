@@ -4,7 +4,7 @@ SIMULATION:
     agents: 991
     source: 8EF73AA0
 ESTIMATION:
-    file: semipar/data/main_uni_no_mig10.pkl
+    file: semipar/data/soep_data.pkl
     start: auto
     agents: 1000
     optimizer: SCIPY-BFGS
