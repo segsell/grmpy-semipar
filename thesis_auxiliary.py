@@ -10,7 +10,8 @@ from sklearn.utils import resample
 from scipy.stats import norm
 
 from semipar.estimation.estimate_auxiliary import estimate_treatment_propensity
-#from semipar.estimation.estimate_auxiliary import define_common_support
+
+# from semipar.estimation.estimate_auxiliary import define_common_support
 from semipar.estimation.estimate_auxiliary import double_residual_reg
 from semipar.estimation.estimate_auxiliary import construct_Xp
 from semipar.estimation.estimate_auxiliary import trim_data
@@ -106,9 +107,7 @@ def plot_mte_carneiro(rslt, init_file, nbootstraps=250):
     con_d = mte - norm.ppf(0.95) * mte_boot_std
 
     # Load original data
-    mte_ = pd.read_csv(
-        "semipar/data/mte_semipar_original.csv"
-    )
+    mte_ = pd.read_csv("semipar/data/mte_semipar_original.csv")
 
     # Plot
     ax = plt.figure(figsize=(17.5, 10)).add_subplot(111)
@@ -190,7 +189,7 @@ def plot_mte_soep(rslt, init_file, nbootstraps=250):
     ax.margins(x=0.005)
     ax.margins(y=0.05)
 
-    #ax.set_ylim([-1.2, 1.2])
+    # ax.set_ylim([-1.2, 1.2])
     ax.set_xlim([0, 1])
 
     ax.plot(quantiles, mte, label="$no migrants$", color="orange", linewidth=4)

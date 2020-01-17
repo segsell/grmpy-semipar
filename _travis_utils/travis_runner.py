@@ -4,7 +4,7 @@ import subprocess as sp
 
 if __name__ == "__main__":
 
-    notebook = "replication-Carneiro2011.ipynb"
+    notebook = "thesis_notebook.ipynb"
     cmd = " jupyter nbconvert --execute {}  \
     --ExecutePreprocessor.timeout=-1".format(
         notebook
