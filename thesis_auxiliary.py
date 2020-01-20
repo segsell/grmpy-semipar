@@ -107,7 +107,7 @@ def plot_mte_carneiro(rslt, init_file, nbootstraps=250):
     con_d = mte - norm.ppf(0.95) * mte_boot_std
 
     # Load original data
-    mte_ = pd.read_csv("semipar/data/mte_semipar_original.csv")
+    mte_ = pd.read_csv("notebook/data/mte_semipar_original.csv")
 
     # Plot
     ax = plt.figure(figsize=(17.5, 10)).add_subplot(111)

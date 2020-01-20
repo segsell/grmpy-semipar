@@ -3,7 +3,7 @@ grmpy-semipar
 *************
 
 .. image:: https://github.com/jupyter/design/blob/master/logos/Badges/nbviewer_badge.svg
-     :target: https://nbviewer.jupyter.org/github/segsell/grmpy-semipar/blob/master/replication-Carneiro2011.ipynb
+     :target: https://nbviewer.jupyter.org/github/segsell/grmpy-semipar/blob/master/thesis_notebook.ipynb
 
 .. image:: https://static.mybinder.org/badge_logo.svg
      :target: https://mybinder.org/v2/gh/segsell/grmpy-semipar/master
