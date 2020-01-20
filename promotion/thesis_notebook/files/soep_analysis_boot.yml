@@ -1,0 +1,118 @@
+---
+SIMULATION:
+    seed: 5062
+    agents: 991
+    source: 8EF73AA0
+ESTIMATION:
+    file: semipar/data/soep_data.pkl
+    start: auto
+    agents: 1000
+    optimizer: SCIPY-BFGS
+    maxiter: 80000
+    dependent: wage
+    indicator: state
+    output_file: replication.grmp.info
+    comparison: 0
+    print_output: 0
+    semipar: True
+    show_output: False
+    logit: False
+    nbins: 20
+    trim_support: True
+    reestimate_p: False
+    rbandwidth: 0.1
+    derivative: 1
+    degree: 2
+    bandwidth: 0.35
+    gridsize: 360
+    ps_range: [0.005, 0.995]
+    truncate: True 
+TREATED:
+    params:
+    - 1.0
+    order:
+    - sex
+    - exp
+    - exp2
+    - avloc2006
+    - local_unemp2006
+    - iq
+    - iqsq
+    - motheduc
+    - motheducsq
+    - white_collar
+    - numsibs
+    - numsibssq
+    - urban15
+    - perm_local_unemp
+    - perm_local_unempsq
+    - avpermlocwage
+    - avpermlocwagesq
+UNTREATED:
+    params:
+    - 1.0
+    order:
+    - sex
+    - exp
+    - exp2
+    - avloc2006
+    - local_unemp2006
+    - iq
+    - iqsq
+    - motheduc
+    - motheducsq
+    - white_collar
+    - numsibs
+    - numsibssq
+    - urban15
+    - perm_local_unemp
+    - perm_local_unempsq
+    - avpermlocwage
+    - avpermlocwagesq
+CHOICE:
+    params:
+    - 1.0
+    order:
+    - const
+    - sex
+    - iq
+    - iqsq
+    - motheduc
+    - motheducsq
+    - white_collar  
+    - numsibs
+    - numsibssq
+    - urban15
+    - pub_uni
+    - pub_uniiq
+    - pub_unimotheduc
+    - pub_uninumsibs
+    - perm_local_unemp
+    - perm_local_unempsq
+    - local_unemp18sq
+    - locwage18
+    - locwage18iq
+    - locwage18motheduc
+    - locwage18numsibs
+    - local_unemp18
+    - local_unemp18iq
+    - local_unemp18motheduc
+    - local_unemp18numsibs
+    - avpermlocwage
+    - avpermlocwagesq
+DIST:
+    params:
+    - 0.1
+    - 0.0
+    - 0.0
+    - 0.1
+    - 0.0
+    - 1.0
+VARTYPES:
+    const: nonbinary
+SCIPY-BFGS:
+    gtol: 1.0e-05
+    eps: 1.4901161193847656e-08
+SCIPY-POWELL:
+    xtol: 0.0001
+    ftol: 0.0001

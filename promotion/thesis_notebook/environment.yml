@@ -1,0 +1,15 @@
+name: grmpy-semipar
+
+dependencies:
+  - numpy
+  - pandas
+  - statsmodels
+  - scipy
+  - numba
+  - matplotlib
+  - jupyterlab
+  - pip
+  - pip:
+    - grmpy
+    - scikit-misc
+    - sklearn
