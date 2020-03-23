@@ -4,7 +4,7 @@ SIMULATION:
     agents: 991
     source: 8EF73AA0
 ESTIMATION:
-    file: notebook/data/soep_data.pkl
+    file: semipar/data/soep_data.pkl
     start: auto
     agents: 1000
     optimizer: SCIPY-BFGS
